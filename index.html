@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Play Tanks Game</title>
+        <style>
+            body { margin: 0; overflow: hidden; }
+        </style>
+        <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const canvas = document.getElementById('canvas');
+                const w = canvas.width  = window.innerWidth;
+                const h = canvas.height = window.innerHeight;
+                setup(canvas.getContext('2d'), w, h);
+                document.addEventListener('keydown', e => keyDown(e.key))
+            });
+        </script>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>
+        <audio id="explosionSound" src="soundFX/explosion.wav"></audio>
+        <audio id="fireSound" src="soundFX/fire.wav"></audio>
+        <img id="tileImage" src="images/tile.png" alt="Tile Image" style="display:none">
+        <script src="gameObjects/field.js"></script>
+        <script src="gameObjects/tank.js"></script>
+        <script src="gameObjects/projectile.js"></script>
+        <script>
+            const titleFont = "100px 'Press Start 2P'";
+            const subtitleFont = "40px 'Press Start 2P'";
+
+            const titleState   = 0;
+            const gameState    = 1;
+            const resultsState = 2;
+            let currentState = titleState;
+
+            let field;
+            let tank1;
+            let tank2;
+            let objects;
+
+            let explosionSound;
+            let fireSound;
+
+            let tileImage;
+
+            function setup(ctx, w, h) {
+                explosionSound = document.getElementById('explosionSound');
+                fireSound = document.getElementById('fireSound');
+
+                tileImage = document.getElementById('tileImage');
+
+                window.requestAnimationFrame(timestamp => draw(ctx, w, h, timestamp));
+            }
+
+            function draw(ctx, w, h, timestamp) {
+                if (w != window.innerWidth || h != window.innerHeight) {
+                    w = canvas.width  = window.innerWidth;
+                    h = canvas.height = window.innerHeight;
+                }
+
+                switch (currentState) {
+                    case titleState:
+                        drawTitle(ctx, w, h);
+                        break;
+                    case gameState:
+                        drawGame(ctx, w, h);
+                        break;
+                    case resultsState:
+                        drawResults(ctx, w, h);
+                        break;
+                }
+
+                window.requestAnimationFrame(timestamp => draw(ctx, w, h, timestamp));
+            }
+
+            function drawTitle(ctx, w, h) {
+                const cx = w * 0.5;
+                const cy = h * 0.5;
+
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.rect(0, 0, w, h);
+                ctx.fill();
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                ctx.fillStyle = 'white';
+                ctx.font = titleFont;
+                ctx.fillText('Super Tanks', cx, cy);
+
+                ctx.fillStyle = 'gray';
+                ctx.font = subtitleFont;
+                ctx.fillText('Press Space to Continue', cx, h - (h * 0.1));
+            }
+
+            function initGame() {
+                field = new Field(40, 40, tileImage);
+                tank1 = new Tank(field, 0, 0, 1, 0, 'red');
+                tank2 = new Tank(field, field.width - 1, field.height - 1, -1, 0, 'blue');
+                objects = [];
+                objects.push(tank1);
+                objects.push(tank2);
+            }
+
+            function drawGame(ctx, w, h) {
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.rect(0, 0, w, h);
+                ctx.fill();
+
+                field.draw(ctx, w, h);
+                for (const obj of objects) {
+                    if (obj instanceof Projectile) {
+                        obj.move(...objects);
+                    }
+
+                    obj.draw(ctx, w, h);
+                }
+                objects = objects.filter(obj => !obj.isDead);
+                if (tank1 && tank1.isDead) {
+                    explosionSound.play();
+                    tank1 = undefined;
+                    currentState = resultsState;
+                }
+                if (tank2 && tank2.isDead) {
+                    explosionSound.play();
+                    tank2 = undefined;
+                    currentState = resultsState;
+                }
+            }
+
+            function drawResults(ctx, w, h) {
+                const cx = w * 0.5;
+                const cy = h * 0.5;
+
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.rect(0, 0, w, h);
+                ctx.fill();
+                
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                ctx.font = titleFont;
+                let message, color;
+                if (!tank1 && !tank2) {
+                    color = 'white';
+                    message = 'Game Over';
+                } else if (!tank1) {
+                    color = tank2.color;
+                    message = 'Tank 2 Won!';
+                } else {
+                    color = tank1.color;
+                    message = 'Tank 1 Won!';
+                }
+                ctx.fillStyle = color;
+                ctx.fillText(message, cx, cy);
+
+                ctx.fillStyle = 'gray';
+                ctx.font = subtitleFont;
+                ctx.fillText('Press Space to Continue', cx, h - (h * 0.1));
+            }
+
+            function keyDown(key) {
+                switch (currentState) {
+                    case titleState:
+                        keyDownInTitle(key);
+                        break;
+                    case gameState:
+                        keyDownInGame(key);
+                        break;
+                    case resultsState:
+                        keyDownInResults(key);
+                        break;
+                }
+            }
+
+            function keyDownInTitle(key) {
+                if (key === ' ') {
+                    initGame();
+                    currentState = gameState;
+                }
+            }
+
+            function keyDownInGame(key) {
+                let tank;
+                if (['w', 'a', 's', 'd', 'e'].includes(key) && tank1) {
+                    tank = tank1;
+                } else if (['4', '5', '6', '7', '8'].includes(key) && tank2) {
+                    tank = tank2;
+                } else {
+                    return;
+                }
+
+                switch (key) {
+                    case 'w':
+                    case '8':
+                        tank.turnUp();
+                        break;
+                    case 's':
+                    case '5':
+                        tank.turnDown();
+                        break;
+                    case 'a':
+                    case '4':
+                        tank.turnLeft();
+                        break;
+                    case 'd':
+                    case '6':
+                        tank.turnRight();
+                        break;
+                    case 'e':
+                    case '7':
+                        fireSound.play();
+                        objects.push(new Projectile(field, tank.x, tank.y, tank.dx, tank.dy, 'white'));
+                        break;
+                }
+
+                if (!['e', '7'].includes(key)) {
+                    tank.move(...objects);
+                }
+            }
+
+            function keyDownInResults(key) {
+                if (key === ' ') {
+                    currentState = titleState;
+                }
+            }
+        </script>
+    </body>
+</html>
