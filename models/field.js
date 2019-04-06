@@ -28,8 +28,8 @@ function Field(width, height, image) {
             for (let x = 0; x < this.width; ++x) {
                 const screenX = this.calcScreenX(cellSize, screenWidth, x);
                 const screenY = this.calcScreenY(cellSize, screenHeight, y);
-
-                ctx.drawImage(this.image, screenX, screenY, cellSize - 1, cellSize - 1);
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(this.image, screenX, screenY, cellSize, cellSize);
             }
         }
     };

@@ -5,7 +5,9 @@
         <title>Play Tanks Game</title>
         <style>
             body { margin: 0; overflow: hidden; }
+            .asset { display: none; }
         </style>
+        <link rel="icon" type="image/png" href="favicon.png">
         <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
         <script>
             document.addEventListener('DOMContentLoaded', () => {
@@ -16,39 +18,46 @@
                 document.addEventListener('keydown', e => keyDown(e.key))
             });
         </script>
+        <script src="models/field.js"></script>
+        <script src="models/tank.js"></script>
+        <script src="models/projectile.js"></script>
     </head>
     <body>
         <canvas id="canvas"></canvas>
-        <audio id="explosionSound" src="soundFX/explosion.wav"></audio>
-        <audio id="fireSound" src="soundFX/fire.wav"></audio>
-        <img id="tileImage" src="images/tile.png" alt="Tile Image" style="display:none">
-        <script src="gameObjects/field.js"></script>
-        <script src="gameObjects/tank.js"></script>
-        <script src="gameObjects/projectile.js"></script>
+        <!-- assets -->
+        <audio id="explosionSound"  class="asset" src="sounds/explosion.wav"></audio>
+        <audio id="fireSound"       class="asset" src="sounds/fire.wav"></audio>
+        <img   id="redTankImage"    class="asset" src="images/redTank.png"    alt="Red Tank Image">
+        <img   id="blueTankImage"   class="asset" src="images/blueTank.png"   alt="Blue Tank Image">
+        <img   id="tileImage"       class="asset" src="images/tile.png"       alt="Tile Image">
+        <img   id="projectileImage" class="asset" src="images/projectile.png" alt="Projectile Image">
+        <!-- logic -->
         <script>
-            const titleFont = "100px 'Press Start 2P'";
-            const subtitleFont = "40px 'Press Start 2P'";
+            const titleFont = "6em 'Press Start 2P'";
+            const titleFontColor = 'white';
+            const subtitleFont = "2em 'Press Start 2P'";
+            const subtitleFontColor = 'gray';
 
             const titleState   = 0;
             const gameState    = 1;
             const resultsState = 2;
             let currentState = titleState;
 
-            let field;
-            let tank1;
-            let tank2;
+            const fieldWidth = 10, fieldHeight = 10;
+            let field
+            let tank1, tank2;
             let objects;
 
-            let explosionSound;
-            let fireSound;
-
-            let tileImage;
+            let explosionSound, fireSound;
+            let tileImage, blueTankImage, redTankImage;
 
             function setup(ctx, w, h) {
                 explosionSound = document.getElementById('explosionSound');
-                fireSound = document.getElementById('fireSound');
+                fireSound      = document.getElementById('fireSound');
 
-                tileImage = document.getElementById('tileImage');
+                redTankImage  = document.getElementById('redTankImage');
+                blueTankImage = document.getElementById('blueTankImage');
+                tileImage     = document.getElementById('tileImage');
 
                 window.requestAnimationFrame(timestamp => draw(ctx, w, h, timestamp));
             }
@@ -75,8 +84,7 @@
             }
 
             function drawTitle(ctx, w, h) {
-                const cx = w * 0.5;
-                const cy = h * 0.5;
+                const [cx, cy] = [w * 0.5, h * 0.5];
 
                 ctx.fillStyle = 'black';
                 ctx.beginPath();
@@ -88,7 +96,7 @@
 
                 ctx.fillStyle = 'white';
                 ctx.font = titleFont;
-                ctx.fillText('Super Tanks', cx, cy);
+                ctx.fillText('Play Tanks Game', cx, cy);
 
                 ctx.fillStyle = 'gray';
                 ctx.font = subtitleFont;
@@ -96,12 +104,10 @@
             }
 
             function initGame() {
-                field = new Field(40, 40, tileImage);
-                tank1 = new Tank(field, 0, 0, 1, 0, 'red');
-                tank2 = new Tank(field, field.width - 1, field.height - 1, -1, 0, 'blue');
-                objects = [];
-                objects.push(tank1);
-                objects.push(tank2);
+                field = new Field(fieldWidth, fieldHeight, tileImage);
+                tank1 = new Tank(field, 0, 0, 1, 0, redTankImage);
+                tank2 = new Tank(field, field.width - 1, field.height - 1, -1, 0, blueTankImage);
+                objects = [tank1, tank2];
             }
 
             function drawGame(ctx, w, h) {
@@ -111,14 +117,14 @@
                 ctx.fill();
 
                 field.draw(ctx, w, h);
+
+                objects = objects.filter(obj => !obj.isDead);
                 for (const obj of objects) {
                     if (obj instanceof Projectile) {
                         obj.move(...objects);
                     }
-
                     obj.draw(ctx, w, h);
                 }
-                objects = objects.filter(obj => !obj.isDead);
                 if (tank1 && tank1.isDead) {
                     explosionSound.play();
                     tank1 = undefined;
@@ -132,14 +138,13 @@
             }
 
             function drawResults(ctx, w, h) {
-                const cx = w * 0.5;
-                const cy = h * 0.5;
+                const [cx, cy] = [w * 0.5, h * 0.5];
 
                 ctx.fillStyle = 'black';
                 ctx.beginPath();
                 ctx.rect(0, 0, w, h);
                 ctx.fill();
-                
+
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
@@ -149,10 +154,10 @@
                     color = 'white';
                     message = 'Game Over';
                 } else if (!tank1) {
-                    color = tank2.color;
+                    color = 'blue';
                     message = 'Tank 2 Won!';
                 } else {
-                    color = tank1.color;
+                    color = 'red';
                     message = 'Tank 1 Won!';
                 }
                 ctx.fillStyle = color;
@@ -214,7 +219,7 @@
                     case 'e':
                     case '7':
                         fireSound.play();
-                        objects.push(new Projectile(field, tank.x, tank.y, tank.dx, tank.dy, 'white'));
+                        objects.push(new Projectile(field, tank.x + tank.dx, tank.y + tank.dy, tank.dx, tank.dy, projectileImage));
                         break;
                 }
 
