@@ -9,6 +9,7 @@
         </style>
         <link rel="icon" type="image/png" href="favicon.png">
         <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+        <script src="/socket.io/socket.io.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const canvas = document.getElementById('canvas');
@@ -38,13 +39,15 @@
             const subtitleFont = "2em 'Press Start 2P'";
             const subtitleFontColor = 'gray';
 
+            const socket = io();
+
             const titleState   = 0;
             const gameState    = 1;
             const resultsState = 2;
             let currentState = titleState;
 
             const fieldWidth = 10, fieldHeight = 10;
-            let field
+            let field;
             let tank1, tank2;
             let objects;
 
@@ -202,22 +205,27 @@
                 switch (key) {
                     case 'w':
                     case '8':
+                        socket.emit('cmd', 'w');
                         tank.turnUp();
                         break;
                     case 's':
                     case '5':
+                        socket.emit('cmd', 's');
                         tank.turnDown();
                         break;
                     case 'a':
                     case '4':
+                        socket.emit('cmd', 'a');
                         tank.turnLeft();
                         break;
                     case 'd':
                     case '6':
+                        socket.emit('cmd', 'd');
                         tank.turnRight();
                         break;
                     case 'e':
                     case '7':
+                        socket.emit('cmd', 'e');
                         fireSound.play();
                         objects.push(new Projectile(field, tank.x + tank.dx, tank.y + tank.dy, tank.dx, tank.dy, projectileImage));
                         break;
