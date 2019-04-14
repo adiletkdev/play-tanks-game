@@ -88,6 +88,16 @@ function Tank(socket, field, x, y, dx, dy) {
             return !obj.isDead
         });
     }
+
+    this.serialize = function() {
+        return {
+            'x': this.x,
+            'y': this.y,
+            'dx': this.dx,
+            'dy': this.dy,
+            'isDead': this.isDead
+        };
+    }
 }
 
 module.exports = Tank;

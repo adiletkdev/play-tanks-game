@@ -39,7 +39,7 @@
             const subtitleFont = "2em 'Press Start 2P'";
             const subtitleFontColor = 'gray';
 
-            const socket = io();
+            let socket;
 
             const titleState   = 0;
             const gameState    = 1;
@@ -48,8 +48,7 @@
 
             const fieldWidth = 10, fieldHeight = 10;
             let field;
-            let tank1, tank2;
-            let objects;
+            let tanks = {};
 
             let explosionSound, fireSound;
             let tileImage, blueTankImage, redTankImage;
@@ -107,10 +106,28 @@
             }
 
             function initGame() {
+                socket = io();
+                socket.on('upd', tanksSerialized => {
+                    console.log(tanksSerialized);
+
+                    for (const [id, tankSerialized] of Object.entries(tanksSerialized)) {
+                        tanks[id] = new Tank(
+                            field,
+                            tankSerialized.x,
+                            tankSerialized.y,
+                            tankSerialized.dx,
+                            tankSerialized.dy,
+                            redTankImage
+                        );
+                        tanks[id].isDead = tankSerialized.isDead;
+                    }
+                });
+                socket.on('dstr', id => {
+                    console.log(id);
+                });
+
                 field = new Field(fieldWidth, fieldHeight, tileImage);
-                tank1 = new Tank(field, 0, 0, 1, 0, redTankImage);
-                tank2 = new Tank(field, field.width - 1, field.height - 1, -1, 0, blueTankImage);
-                objects = [tank1, tank2];
+                objects = {};
             }
 
             function drawGame(ctx, w, h) {
@@ -121,23 +138,16 @@
 
                 field.draw(ctx, w, h);
 
-                objects = objects.filter(obj => !obj.isDead);
-                for (const obj of objects) {
-                    if (obj instanceof Projectile) {
-                        obj.move(...objects);
+                for (const [id, tank] of Object.entries(tanks)) {
+                    if (tank.isDead) {
+                        explosionSound.play();
+                        delete tanks[id];
+                    } else {
+                        tank.draw(ctx, w, h);
                     }
-                    obj.draw(ctx, w, h);
                 }
-                if (tank1 && tank1.isDead) {
-                    explosionSound.play();
-                    tank1 = undefined;
-                    currentState = resultsState;
-                }
-                if (tank2 && tank2.isDead) {
-                    explosionSound.play();
-                    tank2 = undefined;
-                    currentState = resultsState;
-                }
+
+                // ?
             }
 
             function drawResults(ctx, w, h) {
@@ -193,46 +203,27 @@
             }
 
             function keyDownInGame(key) {
-                let tank;
-                if (['w', 'a', 's', 'd', 'e'].includes(key) && tank1) {
-                    tank = tank1;
-                } else if (['4', '5', '6', '7', '8'].includes(key) && tank2) {
-                    tank = tank2;
-                } else {
+                if (!['w', 'a', 's', 'd', 'e'].includes(key)) {
                     return;
                 }
 
                 switch (key) {
                     case 'w':
-                    case '8':
                         socket.emit('cmd', 'w');
-                        tank.turnUp();
                         break;
                     case 's':
-                    case '5':
                         socket.emit('cmd', 's');
-                        tank.turnDown();
                         break;
                     case 'a':
-                    case '4':
                         socket.emit('cmd', 'a');
-                        tank.turnLeft();
                         break;
                     case 'd':
-                    case '6':
                         socket.emit('cmd', 'd');
-                        tank.turnRight();
                         break;
                     case 'e':
-                    case '7':
                         socket.emit('cmd', 'e');
                         fireSound.play();
-                        objects.push(new Projectile(field, tank.x + tank.dx, tank.y + tank.dy, tank.dx, tank.dy, projectileImage));
                         break;
-                }
-
-                if (!['e', '7'].includes(key)) {
-                    tank.move(...objects);
                 }
             }
 

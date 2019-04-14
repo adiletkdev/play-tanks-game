@@ -25,6 +25,12 @@ Message Name: `cmd`
 * Move Right: 'd'
 * Fire:       'e'
 
+### Server Updates
+
+Message Name: `upd`
+
+Sends essential tank and his projectile info.
+
 ## Authors
 
 Adilet Kozubaev <adiletk312@gmail.com>
