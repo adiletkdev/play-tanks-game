@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/AdiletK312/PlayTanksGame#readme",
   "dependencies": {
-    "express": "^4.16.4",
+    "express": "^4.18.2",
     "socket.io": "^2.2.0"
   }
 }
